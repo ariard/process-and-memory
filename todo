@@ -1,3 +1,18 @@
 Makefile = copy right files from your git repository, compile the kernel, move the kernel to right place, reboot computer
 
 ns_of_pid() : returns the pid namespace in which the specified pid was allocated
+
+TODO :
+	-> show all fields struct pid_info *ret = {
+	pid : 				pid_t		pid
+	pointer to process'stack : 	void		*stack;	
+	state of the process :		volatile long	state
+	age of processs : 		u64  		start_time
+	array child/siblings  process :	list_head	children, siblings			
+	parent pid :			task_struct	real_parent
+	root path process :		fs_struct	fs->root
+	cwd :				fs_struct	fs->pwd
+	};
+
+	-> how to compile a syscall
+	-> how to pass data between kernelspace/userspace in a safe way (look on fstat)

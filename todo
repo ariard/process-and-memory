@@ -1,0 +1,1 @@
+Makefile = copy right files from your git repository, compile the kernel, move the kernel to right place, reboot computer

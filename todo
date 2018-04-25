@@ -1,1 +1,3 @@
 Makefile = copy right files from your git repository, compile the kernel, move the kernel to right place, reboot computer
+
+ns_of_pid() : returns the pid namespace in which the specified pid was allocated

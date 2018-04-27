@@ -1267,6 +1267,6 @@ static inline long ksys_truncate(const char __user *pathname, loff_t length)
 	return do_sys_truncate(pathname, length);
 }
 
-asmlinkage long sys_get_pid_info(struct pid_info *ret, int pid);
+asmlinkage long sys_get_pid_info(void);
 
 #endif

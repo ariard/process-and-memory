@@ -9,14 +9,14 @@ default:
 	cp kernel.Makefile $(KDIR)Makefile
 	cp syscalls.h $(KDIR)include/linux/syscalls.h
 	cp syscall_64.tbl $(KDIR)arch/x86/entry/syscalls/syscall_64.tbl
-	rm -rf $(KDIR)/kernel/pid_info && cp -r $(SRCS) $(KDIR)kernel/
+	rm -rf $(KDIR)/pid_info && cp -r $(SRCS) $(KDIR)
 	if [ -a .config ] ; \
 	then \
 		echo ".config OK"; \
 	else \
 		cp /boot/config-$(VERSION) $(KDIR).config; \
 	fi;
-	$(MAKE) -j4 -C $(KDIR) 2>/tmp/logs_make_err 1>/tmp/logs_make
+	$(MAKE) -j4 -C $(KDIR) 
 	cp $(KDIR)arch/x86/boot/bzImage /boot/vmlinuz-$(VERSION)
 	reboot
 

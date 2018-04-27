@@ -1,1 +1,1 @@
-obj-y := get_pid_info.o
+obj-y	= get_pid_info.o

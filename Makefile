@@ -5,18 +5,12 @@ VERSION			= `uname -r`
 KDIR			= /usr/src/linux-$(VERSION)/
 
 default:
-	$(MAKE) clean $(KDIR)
-	cp kernel.Makefile $(KDIR)Makefile
+	cp kernel.Makefile $(KDIR)kernel/Makefile
 	cp syscalls.h $(KDIR)include/linux/syscalls.h
 	cp syscall_64.tbl $(KDIR)arch/x86/entry/syscalls/syscall_64.tbl
-	rm -rf $(KDIR)/pid_info && cp -r $(SRCS) $(KDIR)
-	if [ -a .config ] ; \
-	then \
-		echo ".config OK"; \
-	else \
-		cp /boot/config-$(VERSION) $(KDIR).config; \
-	fi;
-	$(MAKE) -j4 -C $(KDIR) 
+	cp $(SRCS)/*.c $(KDIR)kernel/
+	cp /boot/config-$(VERSION) $(KDIR).config; \
+	$(MAKE) -j4 -C $(KDIR) 1>/tmp/log 2>/tmp/err_log
 	cp $(KDIR)arch/x86/boot/bzImage /boot/vmlinuz-$(VERSION)
 	reboot
 
@@ -26,12 +20,8 @@ continue:
 	reboot
 
 clean:
-	@rm -f Module.symvers $(NAME).mod.c $(NAME).mod.o $(NAME).o modules.order
-	@rm -f built-in.o
-
-fclean: clean
-	@rm -f $(NAME).ko
-	@rm -f $(SRCS)*.o
+	$(MAKE) clean -C $(KDIR)
+	rm -f $(KDIR)kernel/get_pid_info.c
 
 re: clean default
 

@@ -1,6 +1,10 @@
-#include "pid_info.h"
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/sched.h>
+#include <linux/syscalls.h>
 
-asmlinkage long sys_get_pid_info(struct pid_info *ret, int pid)
+SYSCALL_DEFINE0(get_pid_info)
 {
 	printk(KERN_INFO "hello world fron get_pid_info");
 }

@@ -4,7 +4,8 @@
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/sched.h>
-#include <asm/current.h>
+#include <linux/pid.h>
+#include <linux/fs_struct.h>
 
 struct pid_info {
 	int		pid;	
@@ -25,12 +26,22 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 	struct task_struct	*task;
 		
 	pid = find_get_pid(1);	
-	task = pid_task(pid, PIDTYPE_ID);
+	task = pid_task(pid, PIDTYPE_PID);
 	if (task) {
 		printk("PID : %d\n", task->pid);
+		printk("parent : %d\n", task->parent->pid);
+		printk("stack : %p\n", task->stack);
+		printk("state : %ld\n", task->state);
+		printk("start_time : %llu\n", task->start_time);
+/*		printk("root path : %s\n", task->fs->root->dentry.d_iname);
+		printk("pwd path : %s\n", task->fs->pwd->dentry.d_iname); */
+	}
+	/* copy all data */
+	/* how to copy list ? */
+	/* how to RO address stack */
+	/* resolution of pwd/root */
 		
-	return retval;
-err:
+	/* copy_to_user(buffer, &task, sizeof(pid_info) */
 	return retval;
 }
 

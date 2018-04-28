@@ -14,7 +14,7 @@ struct pid_info {
 	char		*pwd;
 };
 
-SYSCALL_DEFINE2(get_pid_info, struct pid_info *, info, int, pid)
+SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 {
 	printk(KERN_INFO "hello world form get_pid_info");
 	return 0; 

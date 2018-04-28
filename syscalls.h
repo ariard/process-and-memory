@@ -66,6 +66,7 @@ struct old_linux_dirent;
 struct perf_event_attr;
 struct file_handle;
 struct sigaltstack;
+struct pid_info;
 union bpf_attr;
 
 #include <linux/types.h>
@@ -970,7 +971,7 @@ asmlinkage long sys_sysfs(int option,
 				unsigned long arg1, unsigned long arg2);
 asmlinkage long sys_fork(void);
 
-asmlinkage long sys_get_pid_info(struct pid_info *info, int pid);
+asmlinkage long sys_get_pid_info(struct pid_info __user *info, int pid);
 
 /* obsolete: kernel/time/time.c */
 asmlinkage long sys_stime(time_t __user *tptr);

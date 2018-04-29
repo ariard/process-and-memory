@@ -18,3 +18,4 @@ TODO :
 
 -> is a way to RO address stack ? seems absurd
 
+analyze fstat, stat in the code for pointer passing 

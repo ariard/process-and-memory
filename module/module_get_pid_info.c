@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/fs.h>
+#include <linux/syscalls.h>
 #include <linux/miscdevice.h>
 #include <linux/sched.h>
 #include <linux/pid.h>
@@ -11,32 +12,40 @@
 #include <linux/kernel.h>
 #include <linux/string.h>
 #include <linux/dcache.h>
+#include <linux/list.h>
 
 MODULE_LICENSE("GPL");
 
 static int 	query_pid = 0;
 
 struct pid_info {
+	char		name[PATH_MAX + 1];
 	int		pid;	
 	int		parent;
 	void 		*stack;
 	long		state;
 	u64		start_time;
-	int		*children;	
-	char		*root;
-	char		*pwd;
+	short int	*children;
+	char		root[PATH_MAX + 1];
+	char		pwd[PATH_MAX + 1];
 };
 
 static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 		size_t length, loff_t *offset)
 {
 	ssize_t			retval = 0;
-	struct pid		*pid;
+	struct pid		*p;
 	struct task_struct	*task;
+	struct task_struct	*child;
 	char			fullpath[512];
 		
-	pid = find_get_pid(query_pid);
-	task = pid_task(pid, PIDTYPE_PID);
+	p = find_get_pid(query_pid);
+	if (!(task = pid_task(p, PIDTYPE_PID))) {
+		retval = -ESRCH;
+		goto out;
+	}
+
+	task_lock(task);
 	if (task) {
 		printk("name : %s\n", task->comm);
 		printk("PID : %d\n", task->pid);
@@ -44,13 +53,18 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 		printk("stack : %p\n", task->stack);
 		printk("state : %ld\n", task->state);
 		printk("start_time : %llu\n", task->start_time);
+		list_for_each_entry(child, &task->children, children) {
+			printk("%d\n", child->pid);
+		}
 		memset(fullpath, 0, 512);
 		printk("root path : %s\n", dentry_path_raw(task->fs->root.dentry, fullpath, 512));
 		memset(fullpath, 0, 512);
 		printk("pwd path : %s\n", dentry_path_raw(task->fs->pwd.dentry, fullpath, 512)); 
 	}
+	task_unlock(task);
 
-	/* copy_to_user(buffer, &task, sizeof(pid_info) */
+	return retval;
+out:
 	return retval;
 }
 

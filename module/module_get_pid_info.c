@@ -8,6 +8,9 @@
 #include <linux/fs_struct.h>
 #include <linux/uaccess.h>
 #include <linux/path.h>
+#include <linux/kernel.h>
+#include <linux/string.h>
+#include <linux/dcache.h>
 
 MODULE_LICENSE("GPL");
 
@@ -30,6 +33,7 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 	ssize_t			retval = 0;
 	struct pid		*pid;
 	struct task_struct	*task;
+	char			fullpath[512];
 		
 	pid = find_get_pid(query_pid);
 	task = pid_task(pid, PIDTYPE_PID);
@@ -40,13 +44,14 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 		printk("stack : %p\n", task->stack);
 		printk("state : %ld\n", task->state);
 		printk("start_time : %llu\n", task->start_time);
-		printk("root path : %s\n", task->fs->root.dentry->d_iname);
-		printk("pwd path : %s\n", task->fs->pwd.dentry->d_iname); 
+		memset(fullpath, 0, 512);
+		printk("root path : %s\n", dentry_path_raw(task->fs->root.dentry, fullpath, 512));
+		memset(fullpath, 0, 512);
+		printk("pwd path : %s\n", dentry_path_raw(task->fs->pwd.dentry, fullpath, 512)); 
 	}
 	/* copy all data */
 	/* how to copy list ? */
 	/* how to RO address stack */
-	/* resolution of pwd/root */
 
 	/* copy_to_user(buffer, &task, sizeof(pid_info) */
 	return retval;
@@ -66,6 +71,7 @@ static ssize_t	pid_info_write(struct file *filp, const char __user *buffer,
 	}
 	else
 		retval = length;
+	kstrtouint(wr_buf, 10, &query_pid);
 
 	return retval;
 out:

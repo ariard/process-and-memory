@@ -14,8 +14,7 @@ TODO :
 	cwd :				fs_struct	fs->pwd
 	};
 
-	-> how to compile a syscall
-	-> how to pass data between kernelspace/userspace in a safe way (look on fstat)
 
-change by iter list by : find_get_pid, pid_task (kernel/pid.c)
-PIDTYPE_ID needed for pid_task;
+
+-> is a way to RO address stack ? seems absurd
+

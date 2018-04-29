@@ -49,9 +49,6 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 		memset(fullpath, 0, 512);
 		printk("pwd path : %s\n", dentry_path_raw(task->fs->pwd.dentry, fullpath, 512)); 
 	}
-	/* copy all data */
-	/* how to copy list ? */
-	/* how to RO address stack */
 
 	/* copy_to_user(buffer, &task, sizeof(pid_info) */
 	return retval;

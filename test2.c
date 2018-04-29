@@ -1,5 +1,7 @@
 #include <sys/syscall.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 struct pid_info {
 	int		pid;
@@ -12,11 +14,24 @@ struct pid_info {
 	char		*pwd;
 };
 
+long	get_pid_info(struct pid_info *ret, int pid) { return syscall(333, ret, pid); };
 
-int	main(void)
+int	main(int argc, char **argv)
 {
-	struct pid_info	ret;
+	struct pid_info		*ret;
+	int			pid;	
 	
-	syscall(333, ret, 1);
+	if (argc == 1) {
+		pid = getpid();
+	} else {
+		pid = atoi(argv[1]);
+	}
+	
+	ret = malloc(sizeof(struct pid_info));
+	get_pid_info(ret, pid);
+	printf("pid %d\n", ret->pid);
+	printf("parent %d\n", ret->parent);
+	printf("stack %p\n", ret->stack);
+	printf("state %d\n", ret->state);
 	return (0);
 }

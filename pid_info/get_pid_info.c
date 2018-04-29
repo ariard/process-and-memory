@@ -11,6 +11,7 @@
 #include <linux/dcache.h>
 
 struct pid_info {
+	char		*name;
 	int		pid;	
 	int		parent;
 	void 		*stack;
@@ -39,11 +40,13 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 		tmp.state = task->state;
 		tmp.start_time = task->start_time;
 	}
-	if ((r = copy_to_user(&tmp, info, sizeof(struct pid_info)))) {
+	if ((r = copy_to_user(info, &tmp, sizeof(struct pid_info)))) {
 		retval = -EFAULT;
 		printk(KERN_INFO "copy to user fail with %ld\n", r);
 		goto out;
 	}
+	/* copy all data */
+	/* how to copy list ? */
 
 	printk(KERN_INFO "calling sys_get_pid_info");
 	return retval;

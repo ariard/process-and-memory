@@ -6,6 +6,12 @@
 #include <linux/sched.h>
 #include <linux/pid.h>
 #include <linux/fs_struct.h>
+#include <linux/uaccess.h>
+#include <linux/path.h>
+
+MODULE_LICENSE("GPL");
+
+static int 	query_pid = 0;
 
 struct pid_info {
 	int		pid;	
@@ -25,28 +31,50 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 	struct pid		*pid;
 	struct task_struct	*task;
 		
-	pid = find_get_pid(1);	
+	pid = find_get_pid(query_pid);
 	task = pid_task(pid, PIDTYPE_PID);
 	if (task) {
+		printk("name : %s\n", task->comm);
 		printk("PID : %d\n", task->pid);
 		printk("parent : %d\n", task->parent->pid);
 		printk("stack : %p\n", task->stack);
 		printk("state : %ld\n", task->state);
 		printk("start_time : %llu\n", task->start_time);
-/*		printk("root path : %s\n", task->fs->root->dentry.d_iname);
-		printk("pwd path : %s\n", task->fs->pwd->dentry.d_iname); */
+		printk("root path : %s\n", task->fs->root.dentry->d_iname);
+		printk("pwd path : %s\n", task->fs->pwd.dentry->d_iname); 
 	}
 	/* copy all data */
 	/* how to copy list ? */
 	/* how to RO address stack */
 	/* resolution of pwd/root */
-		
+
 	/* copy_to_user(buffer, &task, sizeof(pid_info) */
+	return retval;
+}
+
+static ssize_t	pid_info_write(struct file *filp, const char __user *buffer,
+		size_t length, loff_t *offset)
+{
+	ssize_t		retval = 0;
+	char		wr_buf[8];
+
+	memset(wr_buf, 0, 8);
+	length = (length > 8) ? 8 : length;
+	if (copy_from_user(wr_buf, buffer, length)) {
+		retval = -EFAULT;
+		goto out;
+	}
+	else
+		retval = length;
+
+	return retval;
+out:
 	return retval;
 }
 
 static struct file_operations pid_info_fops = {
 	.read = pid_info_read,
+	.write = pid_info_write,
 };
 
 static struct miscdevice pid_info_driver = {

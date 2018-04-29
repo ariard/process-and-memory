@@ -16,6 +16,6 @@ struct pid_info {
 
 SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 {
-	printk(KERN_INFO "hello world form get_pid_info");
+	printk(KERN_INFO "asking about info on : %d", pid);
 	return 0; 
 }

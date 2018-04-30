@@ -57,10 +57,9 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	tmp.start_time = task->start_time;
 	memset(tmp.children, 0, sizeof(short int) * 100);
 	s_child = 0;
-	list_for_each_entry(child, &task->children, children) {
+	list_for_each_entry(child, &task->children, sibling) {
 		if (s_child > 100)
 			break;
-		printk("%d\n", child->pid);
 		tmp.children[s_child++] = child->pid;
 	}
 	memset(tmp.root, 0, PATH_SIZE + 1);
@@ -71,7 +70,6 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	memset(buffpath, 0, PATH_SIZE + 1);
 	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_SIZE + 1);
 	strncpy(tmp.pwd, path, PATH_SIZE + 1);
-	printk("root %s pwd %s\n", tmp.root, tmp.pwd);
 	task_unlock(task);
 
 	if ((copy_to_user(info, &tmp, sizeof(struct pid_info)))) {

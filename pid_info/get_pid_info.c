@@ -15,16 +15,18 @@
 
 /* undervalue PATH_MAX ? */
 
+# define PATH_SIZE	255
+
 struct pid_info {
-	char		name[PATH_MAX + 1];
+	char		name[PATH_SIZE + 1];
 	int		pid;	
 	int		parent;
 	void 		*stack;
 	long		state;
 	u64		start_time;
 	short int	children[100];
-	char		root[PATH_MAX + 1];
-	char		pwd[PATH_MAX + 1];
+	char		root[PATH_SIZE + 1];
+	char		pwd[PATH_SIZE + 1];
 };
 
 SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
@@ -34,7 +36,7 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	struct task_struct	*task;
 	struct task_struct	*child;
 	struct pid_info		tmp;
-	char			buffpath[PATH_MAX + 1];
+	char			buffpath[PATH_SIZE + 1];
 	char			*path; 
 	size_t			s_child = 0;
 
@@ -46,8 +48,8 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	}
 	
 	task_lock(task);
-	memset(tmp.name, 0, PATH_MAX + 1);
-	strncpy(tmp.name, task->comm, PATH_MAX + 1);
+	memset(tmp.name, 0, PATH_SIZE + 1);
+	strncpy(tmp.name, task->comm, PATH_SIZE + 1);
 	tmp.pid = task->pid;
 	tmp.parent = task->parent->pid;
 	tmp.stack = task->stack;
@@ -56,17 +58,20 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	memset(tmp.children, 0, sizeof(short int) * 100);
 	s_child = 0;
 	list_for_each_entry(child, &task->children, children) {
-		/* nedd max size */
+		if (s_child > 100)
+			break;
+		printk("%d\n", child->pid);
 		tmp.children[s_child++] = child->pid;
 	}
-	memset(tmp.root, 0, PATH_MAX + 1);
-	memset(buffpath, 0, PATH_MAX + 1);
-	path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_MAX + 1);
-	strncpy(tmp.root, path, PATH_MAX + 1);
-	memset(tmp.pwd, 0, PATH_MAX + 1);
-	memset(buffpath, 0, PATH_MAX + 1);
-	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_MAX + 1);
-	strncpy(tmp.pwd, path, PATH_MAX + 1);
+	memset(tmp.root, 0, PATH_SIZE + 1);
+	memset(buffpath, 0, PATH_SIZE + 1);
+	path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_SIZE + 1);
+	strncpy(tmp.root, path, PATH_SIZE + 1);
+	memset(tmp.pwd, 0, PATH_SIZE + 1);
+	memset(buffpath, 0, PATH_SIZE + 1);
+	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_SIZE + 1);
+	strncpy(tmp.pwd, path, PATH_SIZE + 1);
+	printk("root %s pwd %s\n", tmp.root, tmp.pwd);
 	task_unlock(task);
 
 	if ((copy_to_user(info, &tmp, sizeof(struct pid_info)))) {
@@ -77,7 +82,6 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 
 	printk(KERN_INFO "calling sys_get_pid_info");
 
-	kfree(tmp.children);
 	return retval;
 out:
 	return retval;

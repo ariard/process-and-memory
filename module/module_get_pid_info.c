@@ -36,10 +36,10 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 	ssize_t			retval = 0;
 	struct pid		*p;
 	struct task_struct	*task;
-	struct task_struct	*child;
+	struct task_struct	*child = NULL;
 	char			fullpath[512];
 		
-	p = find_get_pid(query_pid);
+	p = find_get_pid(1);
 	if (!(task = pid_task(p, PIDTYPE_PID))) {
 		retval = -ESRCH;
 		goto out;
@@ -54,12 +54,12 @@ static ssize_t	pid_info_read(struct file *filp, char __user *buffer,
 		printk("state : %ld\n", task->state);
 		printk("start_time : %llu\n", task->start_time);
 		list_for_each_entry(child, &task->children, children) {
-			printk("%d\n", child->pid);
+			printk("[%d]\n", child->pid);
 		}
 		memset(fullpath, 0, 512);
 		printk("root path : %s\n", dentry_path_raw(task->fs->root.dentry, fullpath, 512));
 		memset(fullpath, 0, 512);
-		printk("pwd path : %s\n", dentry_path_raw(task->fs->pwd.dentry, fullpath, 512)); 
+		printk("pwd path : %s\n", dentry_path_raw(task->fs->pwd.dentry, fullpath, 512));
 	}
 	task_unlock(task);
 

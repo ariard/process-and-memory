@@ -46,6 +46,8 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 		retval = -ESRCH;
 		goto out;
 	}
+
+	/* allocate memory with kmalloc(GFP_USER) ? */
 	
 	task_lock(task);
 	memset(tmp.name, 0, PATH_SIZE + 1);

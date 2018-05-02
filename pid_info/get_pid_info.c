@@ -15,22 +15,19 @@
 
 struct pid_info {
 	size_t		s_name;
-	char		name[PATH_SIZE + 1];
+	char		*name;
 	int		pid;	
 	int		parent;
 	void 		*stack;
 	long		state;
 	u64		start_time;
-	size_t		nbr_child;
-	short int	children[100];
+	size_t		s_child;
+	short int	*children;
 	size_t		s_root;
-	char		root[PATH_SIZE + 1];
+	char		*root;
 	size_t		s_pwd;
-	char		pwd[PATH_SIZE + 1];
+	char		*pwd;
 };
-
-/* could you read _user buffer safely ? */
-/* nope, need to use copy_*_user family */
 
 SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 {
@@ -39,10 +36,11 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	struct task_struct	*task;
 	struct task_struct	*child;
 	struct pid_info		wrap;
-	char			buffpath[PATH_SIZE + 1];
+	char			buffpath[PATH_MAX + 1];
 	char			*path; 
-	size_t			s_tmp;
-	size_t			s_child = 0;
+	size_t			usize = 0;
+	size_t			ksize = 0;
+	size_t			i = 0;
 
 	p = find_get_pid(pid);
 	/* test null ptr passing */
@@ -51,71 +49,91 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 		goto out;
 	}
 
+	printk("flag A\n");
 
-	if (info->s_name == 0)
-	{
-		task_lock(task);
-		s_tmp = strlen(task_comm) + 1;
-		if (copy_to_user(info->s_name, &s_tmp, s_tmp))
-			goto eval_err;
-		memset(buffpath, 0, PATH_SIZE + 1);
-		path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_SIZE + 1);
-		s_tmp = strlen(path) + 1;
-		if (copy_to_user(info->s_root, &s_tmp, s_tmp))
-			goto eval_err;
-		memset(buffpath, 0, PATH_SIZE + 1);
-		path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_SIZE + 1);
-		s_tmp = strlen(path) + 1;
-		if (copy_to_user(info->s_pwd, &s_tmp, s_tmp))
-			goto eval_err;
-		list_for_each(child, &task->children, sibling) {
-			s_tmp++;
-		}
-		s_tmp = sizeof(short int) * s_tmp;
-		if (copy_to_user(info->nbr_child, &s_tmp, s_tmp))
-			goto eval_err;
-		task_unlock(task);
-	}
-	else {	 
-		task_lock(task);
-		memset(wrap.name, 0, info->s_name);
-		strncpy(wrap.name, task->comm, info->s_name);
-		wrap.pid = task->pid;
-		wrap.parent = task->parent->pid;
-		wrap.stack = task->stack;
-		wrap.state = task->state;
-		wrap.start_time = task->start_time;
-		memset(wrap.children, 0, info->nbr_child);
-		s_tmp = 0;
-		list_for_each_entry(child, &task->children, sibling) {
-			/* inaccurate if number of childs change during the two syscalls */
-			if (s_tmp > info->nbr_child)
-				break;
-			wrap.children[s_tmp++] = child->pid;
-		}
-		memset(wrap.root, 0, info->root);
-		memset(buffpath, 0, info->root);
-		path = dentry_path_raw(task->fs->root.dentry, buffpath, info->root);
-		strncpy(wrap.root, path, info->root);
-		memset(wrap.pwd, 0, info->pwd);
-		memset(buffpath, 0, info->pwd);
-		path = dentry_path_raw(task->fs->pwd.dentry, buffpath, info->pwd);
-		strncpy(wrap.pwd, path, info->pwd);
-		task_unlock(task);
+	wrap.name = NULL;
+	wrap.pwd = NULL;
+	wrap.root = NULL;
+	wrap.children = NULL;
+	wrap.pid = task->pid;
+	wrap.parent = task->parent->pid;
+	wrap.stack = task->stack;
+	wrap.state = task->state;
+	wrap.start_time = task->start_time;
 
-		if ((copy_to_user(info, &wrap, sizeof(struct pid_info)))) {
-			retval = -EFAULT;
-			printk(KERN_INFO "copy to user fail");
-			goto out;
-		}
+	if ((copy_to_user(info, &wrap, sizeof(struct pid_info)))) {
+		retval = -EFAULT;
+		goto err;
 	}
+
+	printk("flag B\n");
+	/* does it better to lock/unlock at every step */
+	task_lock(task);
+	if (copy_from_user(&usize, &info->name, sizeof(size_t)))
+		goto err;
+	ksize = strlen(task->comm);
+	if (ksize > usize) {
+		if (copy_to_user(&info->s_name, &ksize, sizeof(size_t)))
+			goto err;
+		goto too_small;
+	}
+	else if (copy_to_user(info->name, task->comm, strlen(task->comm)))
+		goto err;
+
+	printk("flag C\n");
+	if (copy_from_user(&usize, &info->s_child, sizeof(size_t)))
+		goto err;
+	list_for_each_entry(child, &task->children, sibling) {
+		/* doesn t matter that the size isn't accurate, number of children is dynamic */
+		if (i > usize) {
+			if (copy_to_user(&info->s_child, &i, sizeof(size_t)))
+				goto too_small;
+		}
+		else if (copy_to_user(info->children, &child->pid, sizeof(short int)))
+			goto err;
+		i++;	
+	}
+
+	printk("flag D\n");
+	if (copy_from_user(&usize, &info->s_root, sizeof(size_t)))
+		goto err;
+	memset(buffpath, 0, PATH_MAX + 1);
+	path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_MAX + 1);
+	ksize = strlen(path);
+	if (ksize > usize) {
+		if (copy_to_user(&info->s_root, &ksize, sizeof(size_t)))
+			goto err;
+		goto too_small;
+	}
+	else if (copy_to_user(info->root, path, usize))
+		goto err;
+
+	printk("flag E\n");
+	if (copy_from_user(&usize, &info->s_pwd, sizeof(size_t)))
+		goto err;
+	memset(buffpath, 0, PATH_MAX + 1);
+	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_MAX + 1);
+	ksize = strlen(path);
+	if (ksize > usize) {
+		if (copy_to_user(&info->s_pwd, &ksize, sizeof(size_t)))
+			goto err;
+		goto too_small;
+	}
+	else if (copy_to_user(info->pwd, path, usize))
+		goto err;
+
+	task_unlock(task);
 
 	return retval;
-
 out:
 	return retval;
 
-eval_err:
+err:
+	task_unlock(task);
+	retval = -EFAULT;
+	return retval;
+
+too_small:
 	task_unlock(task);
 	retval = -EINVAL;
 	return retval;

@@ -14,8 +14,7 @@
 #include <linux/list.h>
 
 struct pid_info {
-	size_t		s_name;
-	char		*name;
+	char		name[TASK_COMM_LEN];
 	int		pid;	
 	int		parent;
 	void 		*stack;
@@ -35,7 +34,8 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	struct pid		*p;
 	struct task_struct	*task;
 	struct task_struct	*child;
-	char			buffpath[PATH_MAX + 1];
+	char			buff[PATH_MAX + 1];
+	char			comm[TASK_COMM_LEN];
 	char			*path; 
 	size_t			usize = 0;
 	size_t			ksize = 0;
@@ -72,38 +72,38 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	}
 
 	printk("flag B\n");
-	/* does it better to lock/unlock at every step */
-	task_lock(task);
-	if (copy_from_user(&usize, &info->name, sizeof(size_t)))
-		goto err;
-	ksize = strlen(task->comm);
-	if (ksize > usize) {
-		if (copy_to_user(&info->s_name, &ksize, sizeof(size_t)))
-			goto err;
-		goto too_small;
-	}
-	else if (copy_to_user(info->name, task->comm, ksize))
+	memset(comm, 0, TASK_COMM_LEN);	
+	get_task_comm(comm, task);
+	if (copy_to_user(info->name, comm, strlen(comm)))
 		goto err;
 
 	printk("flag C\n");
 	if (copy_from_user(&usize, &info->s_child, sizeof(size_t)))
 		goto err;
+	task_lock(task);
 	list_for_each_entry(child, &task->children, sibling) {
 		/* doesn t matter that the size isn't accurate, number of children is dynamic */
 		if (i > usize) {
-			if (copy_to_user(&info->s_child, &i, sizeof(size_t)))
+			if (copy_to_user(&info->s_child, &i, sizeof(size_t))) {
+				task_unlock(task);
 				goto too_small;
+			}
 		}
-		else if (copy_to_user(&info->children[i], &child->pid, sizeof(short int)))
+		else if (copy_to_user(&info->children[i], &child->pid, sizeof(short int))) {
+			task_unlock(task);
 			goto err;
+		}
 		i++;
 	}
+	task_unlock(task);
 
 	printk("flag D\n");
 	if (copy_from_user(&usize, &info->s_root, sizeof(size_t)))
 		goto err;
-	memset(buffpath, 0, PATH_MAX + 1);
-	path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_MAX + 1);
+	memset(buff, 0, PATH_MAX + 1);
+	task_lock(task);
+	path = dentry_path_raw(task->fs->root.dentry, buff, PATH_MAX + 1);
+	task_unlock(task);
 	ksize = strlen(path);
 	printk("ksize %ld usize %ld\n", ksize, usize);
 	if (ksize > usize) {
@@ -117,8 +117,10 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	printk("flag E\n");
 	if (copy_from_user(&usize, &info->s_pwd, sizeof(size_t)))
 		goto err;
-	memset(buffpath, 0, PATH_MAX + 1);
-	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_MAX + 1);
+	memset(buff, 0, PATH_MAX + 1);
+	task_lock(task);
+	path = dentry_path_raw(task->fs->pwd.dentry, buff, PATH_MAX + 1);
+	task_unlock(task);
 	ksize = strlen(path);
 	printk("ksize %ld\n", ksize);
 	if (ksize > usize) {
@@ -129,20 +131,17 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	else if (copy_to_user(info->pwd, path, ksize))
 		goto err;
 
-	task_unlock(task);
-
 	return retval;
 out:
 	return retval;
 
 err:
-	task_unlock(task);
 	printk("ERR exit");
 	retval = -EFAULT;
 	return retval;
 
 too_small:
-	task_unlock(task);
+	printk("SMALL exit");
 	retval = -EINVAL;
 	return retval;
 }

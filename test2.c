@@ -5,15 +5,21 @@
 
 # define PATH_SIZE	255
 
+/* Need to write comment about layer violation, three methods and how-to */
+
 struct pid_info {
-	char		name[PATH_SIZE + 1];
+	size_t		s_name;
+	char		*name;
 	int		pid;
 	int		parent;
 	void 		*stack;
 	long		state;
 	long unsigned	start_time;
+	size_t		nbr_child;
 	short int	children[100];
+	size_t		s_root;
 	char		root[PATH_SIZE + 1];
+	size_t		s_pwd;
 	char		pwd[PATH_SIZE + 1];
 };
 

@@ -1,7 +1,6 @@
 TODO :
-	- test kmalloc(GFP_USER) with mmap on module-side
-	- implement kill + wait syscalls
-
-
-
-
+	- each case on dynamic buffer + make test
+	- modular make
+	- documentation
+	- ref test
+	- read pdf

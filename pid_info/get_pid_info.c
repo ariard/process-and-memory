@@ -35,7 +35,6 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	struct pid		*p;
 	struct task_struct	*task;
 	struct task_struct	*child;
-	struct pid_info		wrap;
 	char			buffpath[PATH_MAX + 1];
 	char			*path; 
 	size_t			usize = 0;
@@ -50,20 +49,26 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	}
 
 	printk("flag A\n");
+	if (task->parent) {
+		if ((copy_to_user(&info->parent, &task->parent->pid, sizeof(int)))) {
+		 	retval = -EFAULT;
+			goto out;
+		}
+	}
 
-	wrap.name = NULL;
-	wrap.pwd = NULL;
-	wrap.root = NULL;
-	wrap.children = NULL;
-	wrap.pid = task->pid;
-	wrap.parent = task->parent->pid;
-	wrap.stack = task->stack;
-	wrap.state = task->state;
-	wrap.start_time = task->start_time;
-
-	if ((copy_to_user(info, &wrap, sizeof(struct pid_info)))) {
+	if ((copy_to_user(&info->stack, &task->stack, sizeof(int)))) {
 		retval = -EFAULT;
-		goto err;
+		goto out;
+	}
+
+	if ((copy_to_user(&info->state, &task->state, sizeof(long)))) {
+		retval = -EFAULT;
+		goto out;
+	}
+	
+	if (copy_to_user(&info->start_time, &task->start_time, sizeof(u64))) {
+		retval = -EFAULT;
+		goto out;
 	}
 
 	printk("flag B\n");
@@ -77,7 +82,7 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 			goto err;
 		goto too_small;
 	}
-	else if (copy_to_user(info->name, task->comm, strlen(task->comm)))
+	else if (copy_to_user(info->name, task->comm, ksize))
 		goto err;
 
 	printk("flag C\n");
@@ -89,9 +94,9 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 			if (copy_to_user(&info->s_child, &i, sizeof(size_t)))
 				goto too_small;
 		}
-		else if (copy_to_user(info->children, &child->pid, sizeof(short int)))
+		else if (copy_to_user(&info->children[i], &child->pid, sizeof(short int)))
 			goto err;
-		i++;	
+		i++;
 	}
 
 	printk("flag D\n");
@@ -100,12 +105,13 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	memset(buffpath, 0, PATH_MAX + 1);
 	path = dentry_path_raw(task->fs->root.dentry, buffpath, PATH_MAX + 1);
 	ksize = strlen(path);
+	printk("ksize %ld usize %ld\n", ksize, usize);
 	if (ksize > usize) {
 		if (copy_to_user(&info->s_root, &ksize, sizeof(size_t)))
 			goto err;
 		goto too_small;
 	}
-	else if (copy_to_user(info->root, path, usize))
+	else if (copy_to_user(info->root, path, ksize))
 		goto err;
 
 	printk("flag E\n");
@@ -114,12 +120,13 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	memset(buffpath, 0, PATH_MAX + 1);
 	path = dentry_path_raw(task->fs->pwd.dentry, buffpath, PATH_MAX + 1);
 	ksize = strlen(path);
+	printk("ksize %ld\n", ksize);
 	if (ksize > usize) {
 		if (copy_to_user(&info->s_pwd, &ksize, sizeof(size_t)))
 			goto err;
 		goto too_small;
 	}
-	else if (copy_to_user(info->pwd, path, usize))
+	else if (copy_to_user(info->pwd, path, ksize))
 		goto err;
 
 	task_unlock(task);
@@ -130,6 +137,7 @@ out:
 
 err:
 	task_unlock(task);
+	printk("ERR exit");
 	retval = -EFAULT;
 	return retval;
 

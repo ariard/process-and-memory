@@ -3,15 +3,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-# define PATH_SIZE	256
-# define NAME_SIZE	60
+# define PATH_SIZE	512
 # define CHILD_SIZE	10
+# define TASK_COMM_LEN	16
 
 /* Need to write comment about layer violation, three methods and how-to */
 
 struct pid_info {
-	size_t		s_name;
-	char		*name;
+	char		name[TASK_COMM_LEN];
 	int		pid;
 	int		parent;
 	void 		*stack;
@@ -39,8 +38,6 @@ int	main(int argc, char **argv)
 		pid = atoi(argv[1]);
 	}
 	ret = malloc(sizeof(struct pid_info));
-	ret->s_name = NAME_SIZE;
-	ret->name = malloc(NAME_SIZE);
 	ret->s_child = CHILD_SIZE;
 	ret->children = malloc(CHILD_SIZE * sizeof(short int));
 	ret->s_root = PATH_SIZE;
@@ -55,10 +52,16 @@ int	main(int argc, char **argv)
 		printf("stack %p\n", ret->stack);
 		printf("state %d\n", ret->state);
 		i = 0;
-		while (ret->children[i] < CHILD_SIZE)
+		while (ret->children[i])
 			printf("%d\n", ret->children[i++]);
 		printf("root %s\n", ret->root);
 		printf("pwd %s\n", ret->pwd);
+	}
+	else {
+		printf("%s\n", ret->name);
+		printf("child %d\n", ret->s_child);
+		printf("root %d\n", ret->s_root);
+		printf("pwd %d\n", ret->s_pwd);
 	}
 	return (0);
 }

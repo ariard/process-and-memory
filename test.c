@@ -44,7 +44,7 @@ void	show_pid_info(int pid, size_t CHILD_SIZE, size_t  ROOT_SIZE, size_t PWD_SIZ
 	ret.root = malloc(ROOT_SIZE + 1);
 	ret.s_pwd = PWD_SIZE;
 	ret.pwd = malloc(PWD_SIZE + 1);
-	memset(ret.name, 0, TASK_COMM_LEN + 1);
+	memset(ret.name, 0, TASK_COMM_LEN);
 	if (ret.children && ret.root && ret.pwd) {
 		while (1) {
 			memset(ret.children, 0, (ret.s_child + 1) * sizeof(pid_t));

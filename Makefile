@@ -25,4 +25,32 @@ clean:
 	$(MAKE) clean -C $(KDIR)
 	rm -f $(KDIR)kernel/get_pid_info.c
 
+tbuild: tclean
+	@gcc -o test test.c
+
+tclean:
+	@rm -f .log
+
+test: tbuild
+	@./test $(ARG)
+
+t1: tbuild
+	@./test 1 0 512 512 1>>.log
+	@echo -e "\n#######" 1>>.log
+
+t2: tbuild
+	@./test 1 10 0 512 1>>.log
+	@echo -e "\n#######" 1>>.log
+
+t3: tbuild
+	@./test 1 10 512 0 1>>.log
+	@echo -e "\n#######" 1>>.log
+
+t4: tbuild
+	@./test 1 0 0 0 1>>.log
+	@echo -e "\n#######" 1>>.log
+
+all-test: tbuild t1 t2 t3 t4
+	@less .log
+
 re: clean default

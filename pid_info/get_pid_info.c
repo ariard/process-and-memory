@@ -21,7 +21,7 @@ struct pid_info {
 	long		state;
 	u64		start_time;
 	size_t		s_child;
-	short int	*children;
+	int		*children;
 	size_t		s_root;
 	char		*root;
 	size_t		s_pwd;
@@ -74,6 +74,7 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 	printk("flag B\n");
 	memset(comm, 0, TASK_COMM_LEN);	
 	get_task_comm(comm, task);
+	printk("%s %ld\n", comm, strlen(comm));
 	if (copy_to_user(info->name, comm, strlen(comm)))
 		goto err;
 
@@ -89,7 +90,7 @@ SYSCALL_DEFINE2(get_pid_info, struct pid_info __user *, info, int, pid)
 				goto too_small;
 			}
 		}
-		else if (copy_to_user(&info->children[i], &child->pid, sizeof(short int))) {
+		else if (copy_to_user(&info->children[i], &child->pid, sizeof(int))) {
 			task_unlock(task);
 			goto err;
 		}

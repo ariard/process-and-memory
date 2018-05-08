@@ -69,10 +69,9 @@ void	show_pid_info(int pid, size_t CHILD_SIZE, size_t  ROOT_SIZE, size_t PWD_SIZ
 					show_pid_info(ret.children[i++], CHILD_SIZE, ROOT_SIZE, PWD_SIZE);
 				break;
 			} else if (!strcmp(strerror(errno), ERSCH)) {
-				printf("%s : %d\n", sterror(errno), pid);
+				printf("%s : %d\n", strerror(errno), pid);
 				break;
 			} else {
-				printf("%s\n", strerror(errno));
 				printf("Pid [%d] buffers too small..., sizes needed :\n", pid);
 				printf("children %ld vs %ld\n", s_buffers[0], ret.s_child);
 				printf("root %ld vs %ld\n", s_buffers[1], ret.s_root);
